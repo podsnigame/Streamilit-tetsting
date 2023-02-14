@@ -1,30 +1,36 @@
 import streamlit as st
-import os
-import pdfminer.high_level
-from pdf2image import convert_from_path
 import pytesseract
+from PIL import Image
+import io
 
-st.title("PDF to Text Converter")
+# Fungsi untuk mengonversi file PDF menjadi teks
+def pdf_to_text(file):
+    text = ""
+    with open(file, "rb") as f:
+        pdf = PyPDF2.PdfFileReader(f)
+        for page_num in range(pdf.numPages):
+            page = pdf.getPage(page_num)
+            text += page.extractText()
+    return text
+
+# Fungsi untuk mengonversi gambar menjadi teks
+def image_to_text(image):
+    text = pytesseract.image_to_string(image)
+    return text
+
+st.title("Konversi PDF dan Gambar ke Teks")
+
+# Pilihan jenis file
+file_type = st.selectbox("Pilih jenis file", ["PDF", "Gambar"])
 
 # Upload file
-uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
+uploaded_file = st.file_uploader("Upload file", type=[file_type.lower()])
 
-if uploaded_file:
-    # Save uploaded file to temporary directory
-    with open(os.path.join("temp", uploaded_file.name), "wb") as f:
-        f.write(uploaded_file.getbuffer())
-
-    # Convert PDF to image
-    images = convert_from_path(os.path.join("temp", uploaded_file.name))
-
-    # Convert image to text using pytesseract
-    text = ""
-    for image in images:
-        text += pytesseract.image_to_string(image)
-
-    # Save text to temporary file
-    with open(os.path.join("temp", "output.txt"), "w") as f:
-        f.write(text)
-
-    # Display text to user
-    st.text_area("Converted Text", text)
+if uploaded_file is not None:
+    if file_type == "PDF":
+        text = pdf_to_text(uploaded_file)
+    else:
+        image = Image.open(io.BytesIO(uploaded_file.read()))
+        text = image_to_text(image)
+    st.write("Hasil konversi:")
+    st.write(text)
