@@ -1,37 +1,30 @@
 import streamlit as st
-import PyPDF2
+import os
+import pdfminer.high_level
+from pdf2image import convert_from_path
 import pytesseract
-from PIL import Image
-import io
 
-st.set_page_config(page_title="PDF/Image to Text Converter with OCR")
+st.title("PDF to Text Converter")
 
-st.title("PDF/Image to Text Converter with OCR")
+# Upload file
+uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
-file = st.file_uploader("Upload file", type=["pdf", "png", "jpg", "jpeg"])
-if file is not None:
-  content = file.read()
+if uploaded_file:
+    # Save uploaded file to temporary directory
+    with open(os.path.join("temp", uploaded_file.name), "wb") as f:
+        f.write(uploaded_file.getbuffer())
 
-  if file.type == "application/pdf":
-    pdf_reader = PyPDF2.PdfFileReader(io.BytesIO(content))
-    page = pdf_reader.getPage(0)
-    text = page.extractText()
-    st.write(text)
+    # Convert PDF to image
+    images = convert_from_path(os.path.join("temp", uploaded_file.name))
 
-  else:
-    img = Image.open(io.BytesIO(content))
-    text = pytesseract.image_to_string(img)
-    st.write(text)
+    # Convert image to text using pytesseract
+    text = ""
+    for image in images:
+        text += pytesseract.image_to_string(image)
 
-  # Menyimpan hasil konversi sebagai file teks dan menampilkan tombol unduh
-  if st.button("Download Text"):
-    if file.type == "application/pdf":
-      output_file = f"{file.name.split('.')[0]}.txt"
-    else:
-      output_file = f"{file.name.split('.')[0]}.txt"
-    with open(output_file, "w") as f:
-      f.write(text)
-    st.download_button(label="Download Text",
-                       data=io.BytesIO(text.encode("utf-8")).getvalue(),
-                       file_name=output_file,
-                       mime="text/plain")
+    # Save text to temporary file
+    with open(os.path.join("temp", "output.txt"), "w") as f:
+        f.write(text)
+
+    # Display text to user
+    st.text_area("Converted Text", text)
